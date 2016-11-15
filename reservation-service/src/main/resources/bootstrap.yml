@@ -15,3 +15,12 @@ management:
 graphite:
   host: localhost
   port: 2003
+
+---
+
+spring:
+  application:
+    name: reservationservice
+  cloud:
+    config:
+      uri: http://localhost:8889

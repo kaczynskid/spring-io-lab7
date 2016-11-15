@@ -14,7 +14,7 @@ import com.codahale.metrics.graphite.Graphite;
 import com.codahale.metrics.graphite.GraphiteReporter;
 import lombok.Data;
 
-//@Profile("cloud")
+@Profile("graphite")
 @Configuration
 @ConditionalOnProperty(name = "graphite.enabled", havingValue = "true", matchIfMissing = true)
 @EnableConfigurationProperties(GraphiteConfig.class)
