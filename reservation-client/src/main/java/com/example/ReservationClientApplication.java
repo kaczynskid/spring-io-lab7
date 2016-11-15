@@ -1,22 +1,27 @@
 package com.example;
 
+import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
 import static org.springframework.http.HttpMethod.GET;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.client.circuitbreaker.EnableCircuitBreaker;
 import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.cloud.netflix.feign.EnableFeignClients;
 import org.springframework.cloud.netflix.feign.FeignClient;
+import org.springframework.cloud.netflix.hystrix.EnableHystrix;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.hateoas.Resources;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -32,6 +37,7 @@ import lombok.extern.slf4j.Slf4j;
 @SpringBootApplication
 @EnableDiscoveryClient
 @EnableFeignClients
+@EnableCircuitBreaker
 public class ReservationClientApplication {
 
 	public static void main(String[] args) {
@@ -65,11 +71,22 @@ public class ReservationClientApplication {
 	}
 }
 
-@FeignClient("reservationservice")
+@FeignClient(name = "reservationservice", fallback = ReservationsClientFallback.class)
 interface ReservationsClient {
 
 	@RequestMapping(path = "/reservations", method = RequestMethod.GET)
 	Resources<Reservation> listReservations();
+}
+
+@Component
+class ReservationsClientFallback implements ReservationsClient {
+
+	@Override
+	public Resources<Reservation> listReservations() {
+		return new Resources<>(asList("This is fallback".split(" ")).stream()
+			.map(Reservation::new)
+			.collect(toList()));
+	}
 }
 
 @Slf4j
