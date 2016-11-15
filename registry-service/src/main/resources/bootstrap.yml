@@ -1,13 +1,19 @@
 spring:
   application:
     name: registryservice
+  boot:
+    admin:
+      context-path: /admin
   cloud:
     config:
       uri: http://localhost:8889
 
 eureka:
+  instance:
+    hostname: localhost
+    preferIpAddress: true
   client:
     register-with-eureka: false
-    fetch-registry: false
+#    fetch-registry: false
     service-url:
-      defaultZone: http://localhost:${server.port}/eureka
+      defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka
