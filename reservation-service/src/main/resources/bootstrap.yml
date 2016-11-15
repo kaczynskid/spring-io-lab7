@@ -4,20 +4,6 @@ info:
   version: @project.version@
   instanceId: ${spring.application.name}-${random.value}
 
-management:
-  shell:
-    auth:
-      simple:
-        user:
-          name: admin
-          password: pass
-
-graphite:
-  host: localhost
-  port: 2003
-
----
-
 spring:
   profiles:
     active: cloud
