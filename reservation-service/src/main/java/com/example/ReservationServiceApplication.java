@@ -21,6 +21,7 @@ import javax.persistence.Id;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.actuate.health.Health;
@@ -169,13 +170,19 @@ class ReservationController {
 @Component
 class ReservationResourceProcessor implements ResourceProcessor<Resource<Reservation>> {
 
+    @Value("${info.instanceId}")
+    private String instanceId;
+
     @Override
     public Resource<Reservation> process(Resource<Reservation> resource) {
         Reservation reservation = resource.getContent();
         String url = format("https://www.google.pl/search?tbm=isch&q=%s",
             reservation.getName());
         resource.add(new Link(url, "photo"));
-        return resource;
+        return new Resource<>(new Reservation(
+            resource.getContent().getId(),
+            resource.getContent().getName() + " " + instanceId
+        ), resource.getLinks());
     }
 }
 

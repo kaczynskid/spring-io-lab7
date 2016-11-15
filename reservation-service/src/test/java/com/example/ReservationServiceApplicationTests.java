@@ -1,5 +1,6 @@
 package com.example;
 
+import static org.hamcrest.CoreMatchers.startsWith;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -27,7 +28,7 @@ public class ReservationServiceApplicationTests {
 			.andDo(print())
 
         // then
-			.andExpect(jsonPath("@.name").value("Bartek"))
+			.andExpect(jsonPath("@.name").value(startsWith("Bartek")))
 			.andExpect(jsonPath("@._links.photo.href").exists());
 	}
 }

@@ -28,7 +28,7 @@ public class ReservationsRepresentationTest {
         JsonContent<Resource<Reservation>> result = json.write(resource);
 
         // then
-        assertThat(result).extractingJsonPathStringValue("@.name").isEqualTo("John");
+        assertThat(result).extractingJsonPathStringValue("@.name").startsWith("John");
         assertThat(result).extractingJsonPathStringValue("@.links[0].href")
             .isEqualTo("https://www.google.pl/search?tbm=isch&q=John");
     }
