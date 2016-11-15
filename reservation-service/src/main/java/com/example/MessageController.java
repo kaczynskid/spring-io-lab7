@@ -16,6 +16,7 @@ import lombok.NoArgsConstructor;
 @RequestMapping("/message")
 @EnableConfigurationProperties(MyMessage.class)
 public class MessageController {
+
 //    NO REFRESH!!!
 //    private String message;
 //

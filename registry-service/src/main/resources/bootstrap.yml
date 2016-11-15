@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: registryservice
+  cloud:
+    config:
+      uri: http://localhost:8889
+
+eureka:
+  client:
+    register-with-eureka: false
+    fetch-registry: false
+    service-url:
+      defaultZone: http://localhost:${server.port}/eureka
