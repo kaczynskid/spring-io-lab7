@@ -2,7 +2,7 @@ info:
   myStaticInfo: whatever
   artifactid: @project.artifactId@
   version: @project.version@
-
+  instanceId: ${spring.application.name}-${random.value}
 
 management:
   shell:
@@ -19,8 +19,18 @@ graphite:
 ---
 
 spring:
+  profiles:
+    active: cloud
   application:
     name: reservationservice
   cloud:
     config:
       uri: http://localhost:8889
+
+eureka:
+  instance:
+    preferIpAddress: true
+    instanceId: ${info.instanceId}
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:8765/eureka/
