@@ -25,7 +25,9 @@ spring:
     name: reservationservice
   cloud:
     config:
-      uri: http://localhost:8889
+      discovery:
+        enabled: true
+        service-id: configservice
 
 eureka:
   instance:
