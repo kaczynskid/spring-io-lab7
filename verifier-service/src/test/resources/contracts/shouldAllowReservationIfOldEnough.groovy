@@ -20,7 +20,10 @@ Contract.make {
             eligible: true
         ])
         headers {
-            header('Content-Type', 'application/json')
+            header('Content-Type', value(
+                consumer('application/json'),
+                producer(regex('application/json.*'))
+            ))
         }
     }
 }
