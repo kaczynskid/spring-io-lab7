@@ -3,6 +3,10 @@ package com.example;
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
 import static org.springframework.http.HttpMethod.GET;
+import static org.springframework.http.HttpMethod.POST;
+import static org.springframework.http.HttpStatus.CREATED;
+import static org.springframework.http.HttpStatus.EXPECTATION_FAILED;
+import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,9 +25,13 @@ import org.springframework.cloud.netflix.hystrix.EnableHystrix;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.hateoas.Resources;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
@@ -73,6 +81,23 @@ public class ReservationClientApplication {
 	}
 }
 
+@FeignClient(name = "verifierservice")
+interface VerifierClient {
+
+    @RequestMapping(method = RequestMethod.POST, path = "/check", consumes = APPLICATION_JSON_VALUE)
+    VerificationResult check(ReservationRequest request);
+
+}
+
+@NoArgsConstructor
+@AllArgsConstructor
+@Data
+class VerificationResult {
+
+    boolean eligible;
+
+}
+
 @NoArgsConstructor
 @AllArgsConstructor
 @Data
@@ -108,11 +133,14 @@ class ReservationsController {
 
 	private final RestTemplate rest;
 	private final ReservationsClient client;
+    private final VerifierClient verifier;
 
-	public ReservationsController(RestTemplate rest, ReservationsClient client) {
+    public ReservationsController(RestTemplate rest, ReservationsClient client,
+                                  VerifierClient verifier) {
 		this.rest = rest;
 		this.client = client;
-	}
+        this.verifier = verifier;
+    }
 
 	@GetMapping("/names")
 	public List<String> names() {
@@ -132,6 +160,16 @@ class ReservationsController {
 		return client.listReservations().getContent().stream()
 			.map(Reservation::getName)
 			.collect(toList());
+	}
+
+	@PostMapping
+	public ResponseEntity<?> create(@RequestBody ReservationRequest request) {
+        VerificationResult result = verifier.check(request);
+        if (result.isEligible()) {
+            return ResponseEntity.status(CREATED).build();
+        } else {
+            return ResponseEntity.status(EXPECTATION_FAILED).build();
+        }
 	}
 }
 

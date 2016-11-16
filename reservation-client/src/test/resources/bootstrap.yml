@@ -11,3 +11,17 @@ spring:
     circuit:
       breaker:
         enabled: false
+
+---
+
+ribbon:
+  eureka:
+   enabled: false
+
+verifierservice:
+  ribbon:
+    listOfServers: 127.0.0.1:9989
+
+feign:
+  hystrix:
+    enabled: false
