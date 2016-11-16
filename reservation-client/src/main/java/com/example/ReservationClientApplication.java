@@ -3,9 +3,11 @@ package com.example;
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
 import static org.springframework.http.HttpMethod.GET;
+import static org.springframework.http.HttpStatus.CREATED;
 import static org.springframework.http.HttpStatus.EXPECTATION_FAILED;
 import static org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
+import static org.springframework.messaging.support.MessageBuilder.withPayload;
 
 import java.util.List;
 
@@ -19,10 +21,15 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.cloud.netflix.feign.EnableFeignClients;
 import org.springframework.cloud.netflix.feign.FeignClient;
+import org.springframework.cloud.stream.annotation.EnableBinding;
+import org.springframework.cloud.stream.annotation.Output;
+import org.springframework.cloud.stream.messaging.Source;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.hateoas.Resources;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -32,6 +39,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -42,6 +50,7 @@ import lombok.extern.slf4j.Slf4j;
 @EnableDiscoveryClient
 @EnableFeignClients
 @EnableCircuitBreaker
+@EnableBinding(ReservationsBinding.class)
 public class ReservationClientApplication {
 
 	public static void main(String[] args) {
@@ -74,6 +83,13 @@ public class ReservationClientApplication {
 	public RestTemplate restTemplate() {
 		return new RestTemplate();
 	}
+}
+
+interface ReservationsBinding {
+
+    @Output("createReservation")
+    MessageChannel createReservation();
+
 }
 
 @FeignClient(name = "verifierservice")
@@ -137,12 +153,17 @@ class ReservationsController {
 	private final RestTemplate rest;
 	private final ReservationsClient client;
     private final VerifierClient verifier;
+    private final ReservationsBinding binding;
+    private final ObjectMapper json;
 
     public ReservationsController(RestTemplate rest, ReservationsClient client,
-                                  VerifierClient verifier) {
+                                  VerifierClient verifier, ReservationsBinding binding,
+                                  ObjectMapper json) {
 		this.rest = rest;
 		this.client = client;
         this.verifier = verifier;
+        this.binding = binding;
+        this.json = json;
     }
 
 	@GetMapping("/names")
@@ -166,12 +187,19 @@ class ReservationsController {
 	}
 
 	@PostMapping
-	public ResponseEntity<?> create(@RequestBody ReservationRequest request) {
+	public ResponseEntity<?> create(@RequestBody ReservationRequest request) throws Exception {
         log.info("Calling create...");
         VerificationResult result = verifier.check(request);
         if (result.isEligible()) {
-            return client.createReservation(new Reservation(request.name));
+            log.info("Eligible");
+            if (binding.createReservation().send(
+                withPayload(json.writeValueAsString(new Reservation(request.name))).build())) {
+                return ResponseEntity.status(CREATED).build();
+            } else {
+                return ResponseEntity.status(SERVICE_UNAVAILABLE).build();
+            }
         } else {
+            log.info("Not eligible");
             return ResponseEntity.status(EXPECTATION_FAILED).build();
         }
 	}
