@@ -29,6 +29,8 @@ import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.boot.actuate.info.InfoContributor;
 import org.springframework.boot.actuate.metrics.CounterService;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.sleuth.Span;
+import org.springframework.cloud.sleuth.Tracer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.domain.Example;
@@ -37,6 +39,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.data.rest.core.annotation.HandleAfterCreate;
 import org.springframework.data.rest.core.annotation.HandleAfterDelete;
 import org.springframework.data.rest.core.annotation.HandleAfterSave;
+import org.springframework.data.rest.core.annotation.HandleBeforeCreate;
 import org.springframework.data.rest.core.annotation.RepositoryEventHandler;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import org.springframework.data.rest.core.annotation.RestResource;
@@ -72,13 +75,25 @@ public class ReservationServiceApplication {
 class ReservationEventHandler {
 
     private final CounterService counter;
+    private final Tracer tracer;
 
-    public ReservationEventHandler(CounterService counter) {
+    public ReservationEventHandler(CounterService counter, Tracer tracer) {
         this.counter = counter;
+        this.tracer = tracer;
+    }
+
+    ThreadLocal<Span> createSpan = new ThreadLocal<>();
+
+    @HandleBeforeCreate
+    public void beforeCreate(Reservation reservation) {
+        createSpan.set(tracer.createSpan(reservation.name));
+        log.info("DB stuff goes here");
     }
 
     @HandleAfterCreate
     public void create(Reservation reservation) {
+        tracer.close(createSpan.get());
+
         log.info("Created reservation for {}.", reservation.name);
         counter.increment("count");
         counter.increment("create");

@@ -3,12 +3,10 @@ package com.example;
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
 import static org.springframework.http.HttpMethod.GET;
-import static org.springframework.http.HttpMethod.POST;
-import static org.springframework.http.HttpStatus.CREATED;
 import static org.springframework.http.HttpStatus.EXPECTATION_FAILED;
+import static org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.boot.ApplicationRunner;
@@ -21,12 +19,9 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.cloud.netflix.feign.EnableFeignClients;
 import org.springframework.cloud.netflix.feign.FeignClient;
-import org.springframework.cloud.netflix.hystrix.EnableHystrix;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.hateoas.Resources;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -113,6 +108,9 @@ interface ReservationsClient {
 
 	@RequestMapping(path = "/reservations", method = RequestMethod.GET)
 	Resources<Reservation> listReservations();
+
+    @RequestMapping(path = "/reservations", method = RequestMethod.POST)
+    ResponseEntity<Void> createReservation(@RequestBody Reservation reservation);
 }
 
 @Component
@@ -124,6 +122,11 @@ class ReservationsClientFallback implements ReservationsClient {
 			.map(Reservation::new)
 			.collect(toList()));
 	}
+
+    @Override
+    public ResponseEntity<Void> createReservation(Reservation reservation) {
+        return ResponseEntity.status(SERVICE_UNAVAILABLE).build();
+    }
 }
 
 @Slf4j
@@ -164,9 +167,10 @@ class ReservationsController {
 
 	@PostMapping
 	public ResponseEntity<?> create(@RequestBody ReservationRequest request) {
+        log.info("Calling create...");
         VerificationResult result = verifier.check(request);
         if (result.isEligible()) {
-            return ResponseEntity.status(CREATED).build();
+            return client.createReservation(new Reservation(request.name));
         } else {
             return ResponseEntity.status(EXPECTATION_FAILED).build();
         }
