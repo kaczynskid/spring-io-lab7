@@ -1,0 +1,13 @@
+#debug: true
+
+spring:
+  cloud:
+    discovery:
+      enabled: false
+    config:
+      enabled: false
+      discovery:
+        enabled: false
+    circuit:
+      breaker:
+        enabled: false
